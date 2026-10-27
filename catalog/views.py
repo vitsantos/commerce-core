@@ -13,6 +13,9 @@ from .models import Product
 from .serializers import ProductSerializer
 
 
+from .permissions import CanCreateProduct
+
+
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all().order_by("id")
     serializer_class = ProductSerializer
@@ -135,4 +138,11 @@ class ProductViewSet(viewsets.ModelViewSet):
 
         return queryset
 
-# Create your views here.
+
+    def get_permissions(self):
+        if self.action == "create":
+            permission_classes = [CanCreateProduct]
+        else:
+            permission_classes = [IsAuthenticatedOrReadOnly]
+
+        return [permission() for permission in permission_classes]

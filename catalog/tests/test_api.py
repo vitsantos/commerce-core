@@ -49,12 +49,19 @@ def test_anonymous_user_cannot_create_product():
 @pytest.mark.django_db
 def test_negative_price_is_rejected_by_api():
     from django.contrib.auth import get_user_model
+    from django.contrib.auth.models import Group
 
     User = get_user_model()
     user = User.objects.create_user(
         username="testuser",
         password="testpassword123",
     )
+
+    operators_group, _ = Group.objects.get_or_create(
+        name="Operadores"
+    )
+    user.groups.add(operators_group)
+
 
 
     client = APIClient()
@@ -104,3 +111,98 @@ def test_product_pagination():
     assert len(response.data["results"]) == 1
     assert response.data["next"] is None
     assert response.data["previous"] is not None
+
+
+
+@pytest.mark.django_db
+def test_authenticated_user_without_group_cannot_create_product():
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    user = User.objects.create_user(
+        username="user_sem_grupo",
+        password="testspassword123",
+    )
+
+    client = APIClient()
+    client.force_authenticate(user=user)
+
+    response = client.post(
+        "/api/products/",
+        {
+            "sku": "CAM-005",
+            "name": "Produto do operador",
+            "price": "49.90",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 403
+    assert not Product.objects.filter(sku="CAM-005").exists()
+
+
+@pytest.mark.django_db
+def test_operator_can_create_product():
+    from django.contrib.auth import get_user_model
+    from django. contrib.auth.models import Group
+
+    User = get_user_model()
+    operator = User.objects.create_user(
+        username="operador",
+        password="test123",
+    )
+
+    operators_group, _ = Group.objects.get_or_create(name="Operadores")
+    operator.groups.add(operators_group)
+
+    client = APIClient()
+    client.force_authenticate(user=operator)
+
+    response = client.post(
+        "/api/products/",
+        {
+            "sku": "CAM-006",
+            "name": "Produto do operador",
+            "price": "49.90",
+        },
+        format="json",
+    )
+
+    assert response.status_code ==201
+    assert Product.objects.filter(sku="CAM-006").exists()
+
+@pytest.mark.django_db
+def test_administrator_can_create_product():
+    from django.contrib.auth import get_user_model
+    from django.contrib.auth.models import Group
+
+
+    User = get_user_model()
+    administrator = User.objects.create_user(
+        username="administrador",
+        password="test123",
+    )
+
+
+    administrator_group, _ = Group.objects.get_or_create(
+        name="Administradores"
+    )
+
+    administrator.groups.add(administrator_group)
+
+
+    client = APIClient()
+    client.force_authenticate(user=administrator)
+
+    response = client.post(
+        "/api/products/",
+        {
+            "sku": "CAM-007",
+            "name": "Produto do administrador",
+            "price": "59.90",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 201
+    assert Product.objects.filter(sku="CAM-007").exists()
