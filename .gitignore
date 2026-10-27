@@ -1,0 +1,17 @@
+# Banco de dados local SQLite
+db.sqlite3
+
+# Cache e arquivos de teste
+.pytest_cache/
+
+# Arquivos de ambiente
+.env
+.env.*
+!.env.example
+
+# Arquivos Python
+__pycache__/
+*.py[cod]
+
+# Ambiente virtual
+.venv/
