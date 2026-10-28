@@ -13,7 +13,7 @@ from .models import Product
 from .serializers import ProductSerializer
 
 
-from .permissions import CanCreateProduct
+from .permissions import CanCreateProduct, ProductPermission
 
 
 class ProductViewSet(viewsets.ModelViewSet):
@@ -134,15 +134,30 @@ class ProductViewSet(viewsets.ModelViewSet):
         queryset = super().get_queryset()
 
         if self.action in ["list", "retrieve"]:
-            queryset = queryset.filter(is_active=True)
+            user = self.request.user
+
+            is_administrator = (
+                user.is_authenticated and (
+                    user.is_superuser or user.groups.filter(name="Administradores").exists
+                )
+            )
+
+            if not is_administrator:
+                queryset = queryset.filter(is_active=True)
 
         return queryset
+
+
 
 
     def get_permissions(self):
         if self.action == "create":
             permission_classes = [CanCreateProduct]
         else:
-            permission_classes = [IsAuthenticatedOrReadOnly]
+            permission_classes = [ProductPermission]
 
         return [permission() for permission in permission_classes]
+
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
