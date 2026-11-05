@@ -6,7 +6,6 @@ from drf_spectacular.utils import (
     )
 
 from rest_framework import filters, viewsets, serializers
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import Product
@@ -19,7 +18,6 @@ from .permissions import CanCreateProduct, ProductPermission
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all().order_by("id")
     serializer_class = ProductSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
 
 
     filter_backends = [
@@ -33,8 +31,11 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     @extend_schema(
             summary = 'Listar produtos',
-            description = 'Lista os produtos ativos, com suporte a filtros, busca e paginação.',
-            responses = {200: ProductSerializer(many=True)},
+            description = ("Lista os produtos com suporte a filtros, busca e paginação. "
+            "Usuários públicos e operadores visualizam apenas produtos ativos. "
+            "Administradores e superusuários podem visualizar todos os produtos, "
+            "inclusive os inativos."),
+            auth=[],
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
@@ -42,9 +43,28 @@ class ProductViewSet(viewsets.ModelViewSet):
 
 
     @extend_schema(
+        summary="Consultar produto",
+        description=(
+            "Retorna os detalhes de um produto. Usuários públicos e operadores "
+            "podem consultar apenas produtos ativos. Administradores e "
+            "superusuários podem consultar também produtos inativos."
+        ),
+        responses={200: ProductSerializer},
+        auth=[],
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+
+
+    @extend_schema(
             summary = 'Cadastrar produto',
-            description = 'Cadastra um produto. Requer autenticação. '
-            "O SKU deve ser único e o preço não pode ser negativo.",
+            description = (
+                "Cadastra um produto. Requer autenticação e participação no grupo "
+                "'Operadores' ou 'Administradores', ou acesso de superusuário. "
+                "O campo created_by é preenchido automaticamente com o usuário "
+                "autenticado. O SKU deve ser único e o preço não pode ser negativo."
+            ),
             responses = {
                 201: ProductSerializer,
                 400: OpenApiResponse(
@@ -100,6 +120,7 @@ class ProductViewSet(viewsets.ModelViewSet):
                         "description": "Teclado USB para uso diário",
                         "price": "149.90",
                         "is_active": True,
+                        "created_by": 1,
                         "created_at": "2026-10-27T12:00:00Z",
                         "updated_at": "2026-10-27T12:00:00Z",
                     },
@@ -138,7 +159,7 @@ class ProductViewSet(viewsets.ModelViewSet):
 
             is_administrator = (
                 user.is_authenticated and (
-                    user.is_superuser or user.groups.filter(name="Administradores").exists
+                    user.is_superuser or user.groups.filter(name="Administradores").exists()
                 )
             )
 
@@ -161,3 +182,52 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
+
+
+
+    @extend_schema(
+        summary="Atualizar produto",
+        description=(
+            "Atualiza todos os campos editáveis do produto. "
+            "A operação é permitida ao criador do produto, "
+            "aos administradores e aos superusuários. "
+            "Operadores não podem editar produtos de outros usuários. "
+        ),
+        responses={200: ProductSerializer},
+    )
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+
+
+    @extend_schema(
+        summary="Atualizar parcialmente produto",
+        description=(
+            "Atualiza parcialmente os campos editáveis de um produto. "
+            "A operação é permitida ao criador do produto, "
+            "aos administradores e aos superusuários. "
+            "Operadores não podem editar produtos de outros usuários. "
+        )
+    )
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
+
+
+    @extend_schema(
+        summary="Excluir produto",
+        description=(
+            "Exclui permanentemente um produto. "
+            "A operação é permitida aos administradores "
+            "e superusuários. Operadores e usuários comuns "
+            "não possuem permissão para excluir produtos."
+        ),
+        responses={
+            204: OpenApiResponse(
+                description="Produto excluído com sucesso."
+            ),
+            403: OpenApiResponse(
+                description="Permissão negada."
+            ),
+        },
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)

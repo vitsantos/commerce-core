@@ -11,10 +11,11 @@ class ProductSerializer(serializers.ModelSerializer):
             "description",
             "price",
             "is_active",
+            "created_by",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_by", "created_at", "updated_at"]
 
     def validate_sku(self, value):
         value = value.strip().upper()
