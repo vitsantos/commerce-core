@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     #apps da API
     "rest_framework",
     "catalog",
+    "ai_assistant",
     "django_filters",
 
     "drf_spectacular",
