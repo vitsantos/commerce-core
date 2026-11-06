@@ -47,3 +47,14 @@ class SearchProductsTests(TestCase):
         results = search_products("teclado antigo")
 
         self.assertEqual(len(results), 0)
+
+
+    def test_search_with_empty_query(self):
+        result = search_products("")
+
+        self.assertEqual(result, [])
+
+    def test_search_with_whitespace_query(self):
+        result = search_products("  ")
+
+        self.assertEqual(result, [])

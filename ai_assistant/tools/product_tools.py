@@ -2,7 +2,11 @@ from catalog.models import Product
 from django.db.models import Q
 
 def search_products(query: str) -> list[dict]:
-    # Busca produtos ativos pelo nome ou descrição.
+    # Busca produtos ativos pelo nome ou descrição
+
+    if not query or not query.strip():
+        return []
+
     products = Product.objects.filter(
         is_active = True
     ).filter(
