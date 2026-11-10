@@ -2,6 +2,7 @@ from django.test import TestCase
 
 from catalog.models import Product
 from ai_assistant.tools.product_tools import search_products
+from ai_assistant.tools.registry import TOOL_REGISTRY
 
 class SearchProductsTests(TestCase):
     def setUp(self):
@@ -58,3 +59,7 @@ class SearchProductsTests(TestCase):
         result = search_products("  ")
 
         self.assertEqual(result, [])
+
+    def test_search_products_is_registered(self):
+        self.assertIn("search_products", TOOL_REGISTRY)
+        self.assertTrue(callable(TOOL_REGISTRY["search_products"]))
