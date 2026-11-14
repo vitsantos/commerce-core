@@ -57,3 +57,28 @@ class ProcessToolCallTestes(SimpleTestCase):
 
         with self.assertRaises(ValueError):
             process_tool_call(tool_call)
+
+
+    def _assert_rejects_tool_name(self, tool_name):
+        with patch(
+            "ai_assistant.services.orchestrator.execute_tool"
+        ) as mock_execute:
+            with self.assertRaises(ValueError):
+                process_tool_call({
+                    "tool_name": tool_name,
+                    "arguments": {"query": "teclado"},
+                })
+
+            mock_execute.assert_not_called()
+
+    def test_rejects_numeric_tool_name(self):
+        self._assert_rejects_tool_name(123)
+
+    def test_rejects_list_tool_name(self):
+        self._assert_rejects_tool_name(["search_products"])
+
+    def test_rejects_dictionary_tool_name(self):
+        self._assert_rejects_tool_name({"name": "search_products"})
+
+    def test_rejects_whitespace_tool_name(self):
+        self._assert_rejects_tool_name("   ")

@@ -9,7 +9,7 @@ def process_tool_call(tool_call: dict):
     tool_name = tool_call.get("tool_name")
     arguments = tool_call.get("arguments")
 
-    if not tool_name:
+    if not isinstance(tool_name, str) or not tool_name.strip():
         raise ValueError("O nome da ferramenta é obrigatório.")
 
     if arguments is None:
